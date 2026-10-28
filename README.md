@@ -2,6 +2,10 @@
 
 > **모루** = Move + Routine. 대장간에서 쇠를 두드려 단련하는 받침대 '모루'처럼, 매일 조금씩 몸을 단련해요.
 
+**👉 앱 바로 열기: https://yumin365.github.io/moru/**
+
+휴대폰·태블릿에서 열고 **홈 화면에 추가**하면 앱처럼 쓸 수 있어요 (크롬: ⋮ → 홈 화면에 추가 / 사파리: 공유 → 홈 화면에 추가).
+
 앱을 열고 **운동 시작** 버튼만 누르면, 오늘 날짜의 영상이 순서대로 재생돼요.
 
 ```
@@ -116,7 +120,7 @@ const defaultStretch2Video = { title: '마무리 스트레칭', youtubeUrl: 'htt
    ```
 2. 저장소 **Settings → Pages → Build and deployment → Source** 를 **GitHub Actions** 로 선택해요.
 3. `main` 에 push 할 때마다 `.github/workflows/deploy.yml` 이 테스트·빌드 후 자동 배포해요.
-   주소: `https://<아이디>.github.io/<저장소>/`
+   주소: `https://<아이디>.github.io/<저장소>/` (이 저장소: https://yumin365.github.io/moru/)
 4. 휴대폰/갤럭시탭에서 그 주소를 열고
    - Chrome: ⋮ 메뉴 → **홈 화면에 추가** (또는 앱 설치)
    - Safari: 공유 → **홈 화면에 추가**
