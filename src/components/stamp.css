@@ -1,0 +1,71 @@
+.stamp {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  aspect-ratio: 1;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.stamp__body {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform: rotate(var(--stamp-rot, 0deg));
+  opacity: 0.92;
+}
+.stamp.is-ink .stamp__body {
+  filter: url(#df-stamp-ink);
+}
+.stamp__svg,
+.stamp__img,
+.stamp__mask {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.stamp__img {
+  object-fit: contain;
+}
+.stamp__mask {
+  background: currentColor;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+}
+.stamp__text {
+  font-family: var(--font);
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+.stamp__text--big {
+  font-size: 27px;
+}
+
+/* the "thump" when it lands */
+.stamp.is-landing .stamp__body {
+  animation: stamp-land 520ms cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+@keyframes stamp-land {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--stamp-rot, 0deg)) scale(1.9);
+  }
+  55% {
+    opacity: 0.95;
+    transform: rotate(var(--stamp-rot, 0deg)) scale(0.92);
+  }
+  100% {
+    opacity: 0.92;
+    transform: rotate(var(--stamp-rot, 0deg)) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .stamp.is-landing .stamp__body {
+    animation-duration: 1ms;
+  }
+}

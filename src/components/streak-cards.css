@@ -1,0 +1,62 @@
+/* ── Streak cards ─────────────────────────────── */
+.streak-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.streak-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 22px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+}
+.streak-card.is-hot {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: var(--on-dark);
+}
+.streak-card__icon {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  color: var(--faint);
+}
+.streak-card.is-hot .streak-card__icon {
+  background: rgba(255, 122, 47, 0.16);
+  color: var(--flame);
+}
+.streak-card__icon--trophy {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.streak-card__value {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+.streak-card__value span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.streak-card.is-hot .streak-card__value span,
+.streak-card.is-hot .streak-card__label {
+  color: var(--on-dark-muted);
+}
+.streak-card__label {
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}

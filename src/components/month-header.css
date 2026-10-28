@@ -1,0 +1,39 @@
+.month-header {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  margin-bottom: 18px;
+}
+.month-header__title {
+  text-align: center;
+  min-width: 0;
+}
+.month-header__title.is-button {
+  justify-self: center;
+  padding: 4px 14px 6px;
+  border-radius: 18px;
+  transition:
+    background-color var(--t-fast),
+    transform var(--t-fast) var(--ease);
+}
+.month-header__title.is-button:hover {
+  background: var(--fill);
+}
+.month-header__title.is-button:active {
+  transform: scale(0.96);
+}
+.month-header .screen-title {
+  margin-top: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.month-header__caret {
+  color: var(--faint);
+  margin-right: -6px;
+}
+.month-header .screen-title__muted {
+  margin-left: 0.25em;
+}

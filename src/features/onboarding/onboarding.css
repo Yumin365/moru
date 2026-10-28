@@ -1,0 +1,229 @@
+.onb {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  animation: onb-in 320ms var(--ease);
+}
+@keyframes onb-in {
+  from {
+    opacity: 0;
+  }
+}
+.onb__inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 480px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 12px) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + 20px)
+    calc(var(--gutter) + var(--safe-left));
+}
+.onb__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+}
+.onb__back {
+  width: 44px;
+  height: 44px;
+  margin-left: -8px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.onb__skip {
+  min-height: 44px;
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.onb__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-top: 4vh;
+  animation: onb-step 360ms var(--ease) both;
+}
+@keyframes onb-step {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+.onb__visual {
+  width: 88px;
+  height: 88px;
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 26px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.onb__visual--iris {
+  background: var(--iris-soft);
+  color: var(--iris);
+}
+.onb__visual--dark {
+  background: var(--dark);
+  color: var(--accent-bright);
+  padding-left: 6px;
+}
+.onb__title {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.22;
+  letter-spacing: -0.035em;
+}
+.onb__text {
+  margin-top: 12px;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.onb__points {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 26px;
+  padding: 0;
+  list-style: none;
+}
+.onb__points li {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+}
+.onb__points li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.onb__points strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.onb__points small {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.onb__point-icon {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+.onb__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 28px;
+}
+.onb__done {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 800;
+}
+.onb__note {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+.onb__presets {
+  margin-top: 24px;
+}
+.onb__foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding-top: 28px;
+}
+.onb__dots {
+  display: flex;
+  gap: 6px;
+}
+.onb__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 4px;
+  background: var(--fill-strong);
+  transition:
+    width var(--t-med) var(--ease),
+    background-color var(--t-med);
+}
+.onb__dot.is-on {
+  width: 22px;
+  background: var(--ink);
+}
+.onb__icon {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.onb__icon-img {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 22%;
+  object-fit: cover;
+}
+.onb__icon-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.onb__icon-text strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.onb__icon-text small {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.onb__icon-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.onb__icon-actions .icg__btn {
+  margin-top: 0;
+}
+.onb__icon-reset {
+  min-height: 30px;
+  padding: 0 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}

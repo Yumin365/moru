@@ -1,0 +1,24 @@
+/* App shell: a centred column that never gets too wide */
+.app {
+  position: relative;
+  width: 100%;
+  max-width: var(--app-max);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+
+/* Desktop / mouse: the app sits in the middle like a phone */
+@media (not (any-pointer: coarse)) and (min-width: 560px) {
+  html,
+  body {
+    background: var(--bg-deep);
+  }
+  .app {
+    background: var(--bg);
+    box-shadow:
+      0 0 0 1px var(--line),
+      0 30px 80px rgba(22, 22, 26, 0.08);
+  }
+}

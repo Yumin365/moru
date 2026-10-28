@@ -1,0 +1,161 @@
+/* ── Year view (full page) ─────────────────────────── */
+.yearview {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  animation: year-in 300ms var(--ease);
+}
+@keyframes year-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+.yearview__inner {
+  width: 100%;
+  max-width: var(--app-max);
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 12px) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + 32px)
+    calc(var(--gutter) + var(--safe-left));
+}
+.yearview__top {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 6px;
+}
+.yearview__summary {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: -6px 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.yearview__summary strong {
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+  margin: 0 1px;
+}
+
+.ygrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+@media (min-width: 560px) {
+  .ygrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+}
+
+.ymonth {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 10px 11px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-1);
+  text-align: left;
+  transition:
+    transform var(--t-fast) var(--ease),
+    box-shadow var(--t-fast);
+}
+.ymonth:hover {
+  box-shadow: var(--shadow-2);
+}
+.ymonth:active {
+  transform: scale(0.96);
+}
+.ymonth.is-active {
+  box-shadow:
+    0 0 0 2px var(--ink),
+    var(--shadow-1);
+}
+.ymonth__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+.ymonth__label {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.ymonth.is-current .ymonth__label {
+  color: var(--accent-text);
+}
+.ymonth__count {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+}
+.ymonth__cells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.ycell {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--fill);
+}
+.ycell--pad {
+  background: transparent;
+}
+.ycell.is-future {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.ycell.is-rest {
+  background: rgba(22, 22, 26, 0.035);
+}
+.ycell--l1 {
+  background: var(--accent-1);
+}
+.ycell--l2 {
+  background: var(--accent-2);
+}
+.ycell--l3 {
+  background: var(--accent-3);
+}
+.ycell.is-strength.ycell--l1 {
+  background: var(--iris-1);
+}
+.ycell.is-strength.ycell--l2 {
+  background: var(--iris-2);
+}
+.ycell.is-strength.ycell--l3 {
+  background: var(--iris-3);
+}
+.ycell.is-today {
+  box-shadow: 0 0 0 1.5px var(--ink);
+}
+
+.yearview .yearview__legend {
+  margin-top: 18px;
+  border-top: 0;
+}
+
+.ymonth.is-off {
+  background: transparent;
+  box-shadow: none;
+  cursor: default;
+  opacity: 0.45;
+}
+.ymonth.is-off:active {
+  transform: none;
+}
+.ymonth.is-off .ycell {
+  background: var(--fill);
+  box-shadow: none;
+}

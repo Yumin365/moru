@@ -1,0 +1,51 @@
+.tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px 10px 12px;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  animation: tip-in 360ms var(--ease) both;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.tip__icon {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--accent-text);
+}
+.tip__text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+.tip__close {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+  opacity: 0.75;
+}
+.tip__close:hover {
+  background: rgba(var(--accent-rgb), 0.08);
+  opacity: 1;
+}
+
+.cal-tip {
+  margin-bottom: 12px;
+}
