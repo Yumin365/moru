@@ -7,8 +7,8 @@ import { readJSON, writeJSON } from './storage';
  */
 const KEY = 'dailyfit.onboarding.v1';
 
-export type TipId = 'player' | 'calendar' | 'today-check';
-const ALL_TIPS: TipId[] = ['player', 'calendar', 'today-check'];
+export type TipId = 'player' | 'calendar' | 'today-check' | 'today-reorder';
+const ALL_TIPS: TipId[] = ['player', 'calendar', 'today-check', 'today-reorder'];
 
 interface OnboardingState {
   done: boolean;

@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { DayPlan, RecordMap, RecurringRule, RoutineItem, WorkoutSchedule } from '../types';
 import { addDays, addMonths, isValidDateKey, monthGrid, msUntilMidnight, toDateKey, weekOf } from './date';
-import { configStretchDefaults, resolveDay } from './schedule';
+import { highlightDayLabel, highlightQuestion, objectParticle } from './highlight';
+import { applyOrder, configStretchDefaults, mergeOrder, resolveDay } from './schedule';
 import { currentStreak, dayProgress, earliestRecordKey, longestStreak, monthStats } from './stats';
 import { parseStartSeconds, parseYouTubeId } from './youtube';
 
@@ -197,18 +198,80 @@ describe('progress & streaks', () => {
   it('month stats leave out days before the first record', () => {
     const { get } = make({ '2026-10-10': done(...all) });
     const s = monthStats('2026-10', get, today, '2026-10-10');
-    expect(s.completedVideos).toBe(4);
-    expect(s.scheduledVideos).toBe(4 + 3); // 10-10 (4) + 10-12 (3, no cool-down) — 10-11 rest, 10-13 today not started
-    expect(monthStats('2026-09', get, today, '2026-10-10').scheduledVideos).toBe(0);
+    expect(s.completedItems).toBe(4);
+    expect(s.scheduledItems).toBe(4 + 3); // 10-10 (4) + 10-12 (3, no cool-down) — 10-11 rest, 10-13 today not started
+    expect(monthStats('2026-09', get, today, '2026-10-10').scheduledItems).toBe(0);
   });
   it('month stats ignore the in-progress today', () => {
     const { get } = make({ '2026-10-10': done(...all), '2026-10-12': done('workout1', 'workout2') });
     const s = monthStats('2026-10', get, today);
     expect(s.workoutDays).toBe(2);
     expect(s.fullDays).toBe(1);
-    expect(s.completedVideos).toBe(6);
+    expect(s.completedItems).toBe(6);
     // Oct 1–12 are past days; rest days (Sundays 4 & 11) are excluded unless something was done
-    expect(s.scheduledVideos).toBeGreaterThan(s.completedVideos);
+    expect(s.scheduledItems).toBeGreaterThan(s.completedItems);
     expect(s.daily).toHaveLength(31);
+  });
+});
+
+describe('to-dos in the routine', () => {
+  const todoRule: RecurringRule = {
+    id: 'vit',
+    type: 'todo',
+    title: '비타민',
+    youtubeUrl: '',
+    weekdays: [0, 1, 2, 3, 4, 5, 6],
+    startDate: '2026-10-10',
+    createdAt: '2026-10-10T08:00:00.000Z',
+  };
+  const todos = { '2026-10-10': [{ id: 'todo-a', title: '택배', createdAt: '2026-10-10T09:00:00.000Z' }] };
+  const withTodos = { ...ctx, recurring: [todoRule], todos };
+
+  it('puts new to-dos first (newest on top) and leaves the video order alone', () => {
+    const ids = resolveDay('2026-10-10', withTodos).items.map((i) => i.id);
+    expect(ids).toEqual(['todo-a', 'rec-vit', 'stretch1', 'workout1', 'workout2', 'stretch2']);
+  });
+  it('repeating to-dos start on their first day only', () => {
+    expect(resolveDay('2026-10-09', withTodos).items.some((i) => i.type === 'todo')).toBe(false);
+  });
+  it('counts to-dos in progress but not in minutes', () => {
+    const plan = resolveDay('2026-10-10', withTodos);
+    const p = dayProgress(plan, { done: { 'todo-a': 'x', workout1: 'x' }, updatedAt: 'x' }, '2026-10-20');
+    expect(p.total).toBe(6);
+    expect(p.completed).toBe(2);
+    expect(p.todosDone).toBe(1);
+    expect(p.minutes).toBe(10);
+  });
+  it('applies a saved order and keeps unknown items in place', () => {
+    const order = mergeOrder([], ['stretch1', 'rec-vit', 'workout1', 'workout2', 'stretch2']);
+    const ids = resolveDay('2026-10-10', { ...withTodos, order }).items.map((i) => i.id);
+    expect(ids).toEqual(['todo-a', 'stretch1', 'rec-vit', 'workout1', 'workout2', 'stretch2']);
+  });
+  it('mergeOrder puts a day’s sequence where its first item was', () => {
+    expect(mergeOrder(['x', 'a', 'b', 'y'], ['b', 'a'])).toEqual(['x', 'b', 'a', 'y']);
+    expect(mergeOrder(['x'], ['n', 'm'])).toEqual(['n', 'm', 'x']);
+  });
+  it('applyOrder re-sorts only known items among their own places', () => {
+    const items = ['n', 'a', 'b', 'c'].map((id) => ({ id, type: 'workout', title: id, youtubeUrl: '' }) as RoutineItem);
+    expect(applyOrder(items, ['c', 'b', 'a']).map((i) => i.id)).toEqual(['n', 'c', 'b', 'a']);
+  });
+});
+
+describe('파란색 기록', () => {
+  it('picks 을/를 and builds the labels', () => {
+    expect(highlightQuestion('근력 운동')).toBe('오늘 근력 운동을 했나요?');
+    expect(highlightQuestion('독서')).toBe('오늘 독서를 했나요?');
+    expect(objectParticle('Yoga')).toBe('을(를)');
+    expect(highlightDayLabel('명상')).toBe('명상한 날');
+    expect(highlightDayLabel('만보 걷기')).toBe('만보 걷기 한 날');
+  });
+  it('counts an answer, or a linked to-do check, and can be switched off', () => {
+    const plan = resolveDay('2026-10-10', ctx);
+    const answered = { done: {}, strength: true, updatedAt: 'x' };
+    const checked = { done: { 'rec-med': 'x' }, updatedAt: 'x' };
+    expect(dayProgress(plan, answered, '2026-10-20').strength).toBe(true);
+    expect(dayProgress(plan, checked, '2026-10-20').strength).toBe(false);
+    expect(dayProgress(plan, checked, '2026-10-20', { itemIds: ['rec-med'] }).strength).toBe(true);
+    expect(dayProgress(plan, answered, '2026-10-20', { itemIds: [], off: true }).strength).toBe(false);
   });
 });

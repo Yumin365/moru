@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   videoMeta: 'dailyfit.videoMeta.v1',
   imported: 'dailyfit.imported.v1',
   recurring: 'dailyfit.recurring.v1',
+  todos: 'dailyfit.todos.v1',
 } as const;
 
 export function readJSON<T>(key: string, fallback: T): T {

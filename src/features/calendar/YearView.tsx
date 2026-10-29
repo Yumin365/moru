@@ -8,6 +8,7 @@ import { useStore } from '../../state/WorkoutStore';
 import type { DayProgress } from '../../types';
 import { intensity } from './CalendarDay';
 import './year.css';
+import { useHighlight } from '../../state/useHighlight';
 
 interface YearViewProps {
   open: boolean;
@@ -32,6 +33,7 @@ function cellClass(p: DayProgress, isToday: boolean): string {
 
 /** The whole year at a glance: 12 mini heat-map months (no day numbers). */
 export function YearView({ open, activeMonth, onClose, onSelectMonth }: YearViewProps) {
+  const hl = useHighlight();
   const { todayKey, getProgress, options, appStart, lastPlannedMonth } = useStore();
   const minMonth = monthKey(appStart);
   const minYear = Number(minMonth.slice(0, 4));
@@ -111,10 +113,14 @@ export function YearView({ open, activeMonth, onClose, onSelectMonth }: YearView
 
         <div className="yearview__summary">
           <span>
-            운동한 날 <strong className="num">{totals.days}</strong>일
+            기록한 날 <strong className="num">{totals.days}</strong>일
           </span>
           <span>
-            근력 <strong className="num">{totals.strength}</strong>일
+            {hl.on && (
+              <>
+                {hl.name} <strong className="num">{totals.strength}</strong>일
+              </>
+            )}
           </span>
         </div>
 
@@ -128,7 +134,7 @@ export function YearView({ open, activeMonth, onClose, onSelectMonth }: YearView
               className={`ymonth${m.key === activeMonth ? ' is-active' : ''}${m.key === currentMonth ? ' is-current' : ''}${off ? ' is-off' : ''}`}
               disabled={off}
               onClick={() => onSelectMonth(m.key)}
-              aria-label={`${year}년 ${m.label}: 운동한 날 ${m.workoutDays}일`}
+              aria-label={`${year}년 ${m.label}: 기록한 날 ${m.workoutDays}일`}
             >
               <span className="ymonth__head">
                 <span className="ymonth__label">{m.label}</span>
@@ -153,11 +159,13 @@ export function YearView({ open, activeMonth, onClose, onSelectMonth }: YearView
             <i className="legend__sw legend__sw--l0" /> 기록 없음
           </span>
           <span className="legend__item">
-            <i className="legend__sw legend__sw--l3" /> 운동
+            <i className="legend__sw legend__sw--l3" /> 기록
           </span>
-          <span className="legend__item">
-            <i className="legend__sw legend__sw--s3" /> 근력
-          </span>
+          {hl.on && (
+            <span className="legend__item">
+              <i className="legend__sw legend__sw--s3" /> {hl.name}
+            </span>
+          )}
         </div>
       </div>
     </div>,

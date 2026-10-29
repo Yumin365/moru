@@ -21,6 +21,7 @@ import {
 } from '../../state/Decor';
 import { useBackButton } from '../../state/useBackButton';
 import { useToast } from '../../state/Toast';
+import { useHighlight } from '../../state/useHighlight';
 import { useIconFlow } from './IconFlow';
 import { BackgroundPreview, IconPreview, MiniScreen, StampPreview, StickerPreview } from './previews';
 import { newStickerId } from './ScreenDecor';
@@ -88,6 +89,7 @@ function SliderRow({ title, value, min, max, step, format, onChange }: { title: 
 
 // ── ① theme ─────────────────────────────────────────────
 function ThemeTab() {
+  const hl = useHighlight();
   const { decor, setTheme } = useDecor();
   const theme = decor.theme;
   const warnings = themeWarnings(theme);
@@ -109,7 +111,7 @@ function ThemeTab() {
         </div>
         <div className="theme-preview__row">
           <span className="theme-preview__btn">운동 시작</span>
-          <span className="theme-preview__chip">근력</span>
+          <span className="theme-preview__chip">{hl.on ? hl.name : '보조 색'}</span>
         </div>
       </div>
 
@@ -157,7 +159,7 @@ function ThemeTab() {
           <label className="srow srow--color">
             <span className="srow__text">
               <span className="srow__title">보조 색</span>
-              <span className="srow__detail">근력 운동한 날 · 차트</span>
+              <span className="srow__detail">{hl.on ? `${hl.dayLabel} · 차트` : '차트'}</span>
             </span>
             <span className="color-pick" style={{ background: theme.secondary }}>
               <input type="color" value={theme.secondary} onChange={(e) => setCustom({ secondary: e.target.value })} aria-label="보조 색" />

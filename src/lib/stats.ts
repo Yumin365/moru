@@ -3,13 +3,22 @@ import type { DayPlan, DayProgress, DayRecord, RecordMap } from '../types';
 import { totalMinutes } from './schedule';
 import { addDays, compareKeys, daysInMonth, parseDateKey } from './date';
 
+/** How the 파란색 기록 is read: linked to-do item ids also count, 'off' hides it. */
+export interface HighlightRule {
+  itemIds: string[];
+  off?: boolean;
+}
+
 /** Completion summary for one date. */
-export function dayProgress(plan: DayPlan, record: DayRecord | undefined, todayKey: string): DayProgress {
+export function dayProgress(plan: DayPlan, record: DayRecord | undefined, todayKey: string, highlight?: HighlightRule): DayProgress {
   const total = plan.items.length;
   const completedItems = plan.items.filter((item) => record?.done[item.id]);
   const completed = completedItems.length;
+  const todosDone = completedItems.filter((item) => item.type === 'todo').length;
+  const todoTotal = plan.items.filter((item) => item.type === 'todo').length;
   const minutes = totalMinutes(completedItems);
-  const strength = record?.strength === true;
+  const strength =
+    !highlight?.off && (record?.strength === true || (highlight?.itemIds ?? []).some((id) => Boolean(record?.done[id])));
   const ratio = total ? completed / total : 0;
 
   let status: DayProgress['status'];
@@ -19,7 +28,7 @@ export function dayProgress(plan: DayPlan, record: DayRecord | undefined, todayK
   else if (completed > 0) status = 'partial';
   else status = 'none';
 
-  return { total, completed, ratio, status, strength, minutes };
+  return { total, completed, todosDone, todoTotal, ratio, status, strength, minutes };
 }
 
 export type ProgressGetter = (dateKey: string) => DayProgress;
@@ -88,8 +97,12 @@ export interface MonthStats {
   workoutDays: number;
   fullDays: number;
   strengthDays: number;
-  completedVideos: number;
-  scheduledVideos: number;
+  /** finished / planned items (videos + to-dos) */
+  completedItems: number;
+  scheduledItems: number;
+  /** the to-do part of the two numbers above */
+  completedTodos: number;
+  scheduledTodos: number;
   completionRate: number;
   minutes: number;
   /** One entry per calendar day of the month. */
@@ -110,8 +123,10 @@ export function monthStats(month: string, get: ProgressGetter, todayKey: string,
     workoutDays: 0,
     fullDays: 0,
     strengthDays: 0,
-    completedVideos: 0,
-    scheduledVideos: 0,
+    completedItems: 0,
+    scheduledItems: 0,
+    completedTodos: 0,
+    scheduledTodos: 0,
     completionRate: 0,
     minutes: 0,
     daily: [],
@@ -135,10 +150,12 @@ export function monthStats(month: string, get: ProgressGetter, todayKey: string,
     const isToday = key === todayKey;
     const include = progress.completed > 0 || (!isToday && progress.status !== 'rest');
     if (include) {
-      stats.completedVideos += progress.completed;
-      stats.scheduledVideos += progress.total;
+      stats.completedItems += progress.completed;
+      stats.scheduledItems += progress.total;
+      stats.completedTodos += progress.todosDone;
+      stats.scheduledTodos += progress.todoTotal;
     }
   }
-  stats.completionRate = stats.scheduledVideos ? stats.completedVideos / stats.scheduledVideos : 0;
+  stats.completionRate = stats.scheduledItems ? stats.completedItems / stats.scheduledItems : 0;
   return stats;
 }

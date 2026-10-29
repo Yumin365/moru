@@ -1,7 +1,10 @@
-import { Clock3, Dumbbell, Moon } from 'lucide-react';
+import { Clock3, Moon } from 'lucide-react';
+import { HighlightIcon } from '../../components/HighlightIcon';
 import { ProgressRing } from '../../components/ProgressRing';
 import type { DayPlan, DayProgress } from '../../types';
 import { durationSummary } from '../../lib/schedule';
+import { useHighlight } from '../../state/useHighlight';
+import { useStore } from '../../state/WorkoutStore';
 
 interface TodayHeroProps {
   plan: DayPlan;
@@ -20,12 +23,14 @@ function headline(plan: DayPlan, p: DayProgress): string {
 
 /** Dark progress card at the top of Today. */
 export function TodayHero({ plan, progress, doneIds }: TodayHeroProps) {
+  const hl = useHighlight();
+  const { setStrength } = useStore();
   const duration = durationSummary(plan.items);
   const complete = progress.total > 0 && progress.completed === progress.total;
   return (
     <section className={`hero${complete ? ' is-complete' : ''}`} aria-label="오늘의 진행 상황">
       <div className="hero__text">
-        <div className="hero__label">{plan.isRest ? '휴식일' : '오늘의 운동'}</div>
+        <div className="hero__label">{plan.isRest ? '휴식일' : plan.items.some((i) => i.type === 'todo') ? '오늘의 루틴' : '오늘의 운동'}</div>
         <div className="hero__count num" aria-label={`${progress.total}개 중 ${progress.completed}개 완료`}>
           <span className="hero__count-big">{progress.completed}</span>
           <span className="hero__count-total">/ {progress.total}</span>
@@ -37,14 +42,25 @@ export function TodayHero({ plan, progress, doneIds }: TodayHeroProps) {
               <Clock3 size={14} strokeWidth={2.4} aria-hidden="true" /> <span className="num">{duration.label}</span>
             </span>
           )}
-          {plan.isRest ? (
+          {plan.isRest && (
             <span>
               <Moon size={14} strokeWidth={2.4} aria-hidden="true" /> 스트레칭만
             </span>
+          )}
+          {hl.mode === 'ask' ? (
+            <button
+              type="button"
+              className={`hero__hl${progress.strength ? ' is-on' : ''}`}
+              aria-pressed={progress.strength}
+              onClick={() => setStrength(plan.dateKey, progress.strength ? undefined : true)}
+            >
+              <HighlightIcon icon={hl.icon} size={14} /> {progress.strength ? `${hl.name} 했어요` : `${hl.name} 했나요?`}
+            </button>
           ) : (
+            hl.mode === 'todo' &&
             progress.strength && (
               <span className="hero__strength">
-                <Dumbbell size={14} strokeWidth={2.4} aria-hidden="true" /> 근력 운동
+                <HighlightIcon icon={hl.icon} size={14} /> {hl.name}
               </span>
             )
           )}

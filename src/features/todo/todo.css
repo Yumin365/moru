@@ -1,0 +1,144 @@
+/* ── To-do card (text only, same family as the video cards) ── */
+.wcard--todo .wcard__main {
+  min-height: 68px;
+  padding: 12px 4px 12px 18px;
+}
+.wcard__type--todo {
+  color: var(--ink);
+}
+.wcard--todo .wcard__title {
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+}
+.wcard--todo.is-done .wcard__title {
+  color: var(--muted);
+}
+/* with stamps off, a strike-through shows it's done */
+.wcard--todo.is-done:not(:has(.has-stamp)) .wcard__title {
+  text-decoration: line-through;
+  text-decoration-color: rgba(var(--accent-rgb), 0.45);
+  text-decoration-thickness: 2px;
+}
+
+/* ── "할 일 추가" + carry-over ── */
+.todo-add {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  margin-bottom: 10px;
+  padding: 0 16px;
+  border-radius: 20px;
+  border: 1.5px dashed var(--fill-strong);
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--ink-2);
+  transition:
+    background-color var(--t-fast),
+    border-color var(--t-fast);
+}
+.todo-add:hover {
+  background: var(--surface-2);
+}
+.todo-add:active {
+  background: var(--fill);
+}
+.todo-add__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--dark);
+  color: var(--on-dark);
+}
+.decor-screen.has-bg .todo-add {
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.todo-carry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 18px;
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.todo-carry__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ── long-press reorder ── */
+.sort-item {
+  position: relative;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.sort-item img {
+  -webkit-user-drag: none;
+}
+.wcard-list.is-sorting .sort-item {
+  transition: transform 200ms var(--ease);
+}
+.wcard-list.is-sorting .sort-item.is-lifted {
+  transition: none;
+}
+.sort-item.is-lifted .wcard {
+  transform: scale(1.02);
+  box-shadow:
+    0 18px 40px rgba(22, 22, 26, 0.18),
+    0 0 0 2px var(--accent);
+  transition:
+    transform 160ms var(--ease),
+    box-shadow 160ms var(--ease);
+}
+.wcard-list.is-sorting .sort-item:not(.is-lifted) {
+  opacity: 0.92;
+}
+
+/* ── sheet ── */
+.todo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.todo-form__repeat {
+  padding: 6px 14px 12px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.todo-form__note {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.wcard__hl {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 7px;
+  border-radius: var(--r-pill);
+  background: var(--iris-soft);
+  color: var(--iris-text);
+  font-size: 11px;
+  font-weight: 800;
+}

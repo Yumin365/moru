@@ -726,3 +726,30 @@
   background: transparent;
   box-shadow: none;
 }
+
+/* 파란색 기록: answer it right on the hero card */
+.hero__hl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  margin: -4px 0;
+  padding: 0 11px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: var(--on-dark-muted);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.hero__hl:active {
+  transform: scale(0.96);
+}
+.hero__hl.is-on {
+  background: var(--iris);
+  box-shadow: none;
+  color: var(--iris-ink);
+}

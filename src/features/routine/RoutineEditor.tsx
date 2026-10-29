@@ -6,14 +6,7 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { RepeatDaysPicker } from '../../components/RepeatDaysPicker';
 import { Sheet } from '../../components/Sheet';
 import { addDays, formatParts, parseDateKey, WEEKDAYS_SHORT, weekdaysLabel } from '../../lib/date';
-import {
-  EVERY_DAY,
-  mergeStretchDefaults,
-  newItemId,
-  ruleApplies,
-  stretchDaysOn,
-  type StretchSlot,
-} from '../../lib/schedule';
+import { EVERY_DAY, isVideo, mergeStretchDefaults, newItemId, ruleApplies, stretchDaysOn, type StretchSlot } from '../../lib/schedule';
 import { parseYouTubeId } from '../../lib/youtube';
 import { useToast } from '../../state/Toast';
 import { useStore } from '../../state/WorkoutStore';
@@ -63,13 +56,15 @@ export function RoutineEditor({ dateKey, onClose }: RoutineEditorProps) {
     setStretchOverride,
     stretchDays,
     setStretchDays,
+    setDayOrder,
   } = useStore();
   const toast = useToast();
   const [draft, setDraft] = useState<DraftItem[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null);
-  const plan = dateKey ? getPlan(dateKey) : null;
+  const fullPlan = dateKey ? getPlan(dateKey) : null;
+  const plan = fullPlan ? { ...fullPlan, items: fullPlan.items.filter(isVideo) } : null;
   const weekday = dateKey ? parseDateKey(dateKey).getDay() : 0;
   const ruleById = (id?: string) => recurring.find((r) => r.id === id);
   const defaults = mergeStretchDefaults(stretchOverrides);
@@ -77,7 +72,7 @@ export function RoutineEditor({ dateKey, onClose }: RoutineEditorProps) {
 
   useEffect(() => {
     if (!dateKey) return;
-    const items = getPlan(dateKey).items;
+    const items = getPlan(dateKey).items.filter(isVideo);
     setDraft(
       items.map((i) => {
         const video = parseYouTubeId(i.youtubeUrl);
@@ -207,6 +202,7 @@ export function RoutineEditor({ dateKey, onClose }: RoutineEditorProps) {
         return cleaned.find((c) => c.id === item.id)?.dailyStretch ? true : sameFields(item, b);
       });
     if (!unchanged || plan.isCustom) saveRoutine(dateKey, dayItems);
+    setDayOrder(cleaned.map((i) => i.id));
 
     toast({ message: newRules ? '루틴을 저장했어요 · 반복이 추가됐어요' : '루틴을 저장했어요' });
     onClose();

@@ -1,11 +1,13 @@
-import { CalendarCheck, ChevronLeft, ChevronRight, Clock3, Dumbbell, Percent, X } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Clock3, ListChecks, Percent, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { IconButton } from '../../components/Button';
+import { HighlightIcon } from '../../components/HighlightIcon';
 import { monthKey } from '../../lib/date';
 import { monthStats, type MonthStats } from '../../lib/stats';
 import { useBackButton } from '../../state/useBackButton';
 import { useStore } from '../../state/WorkoutStore';
+import { useHighlight } from '../../state/useHighlight';
 import '../calendar/year.css';
 import './stats.css';
 
@@ -19,8 +21,9 @@ interface YearStatsViewProps {
 
 const pct = (s: MonthStats) => Math.round(s.completionRate * 100);
 
-/** The year by month: totals, a workout-days chart and one card per month. */
+/** The year by month: totals, a recorded-days chart and one card per month. */
 export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: YearStatsViewProps) {
+  const hl = useHighlight();
   const { todayKey, getProgress, appStart } = useStore();
   const since = appStart;
   const startMonth = monthKey(appStart);
@@ -59,6 +62,7 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
   const totals = useMemo(() => {
     let days = 0;
     let strength = 0;
+    let todos = 0;
     let minutes = 0;
     let done = 0;
     let planned = 0;
@@ -66,11 +70,12 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
       if (!m.started) continue;
       days += m.stats.workoutDays;
       strength += m.stats.strengthDays;
+      todos += m.stats.completedTodos;
       minutes += m.stats.minutes;
-      done += m.stats.completedVideos;
-      planned += m.stats.scheduledVideos;
+      done += m.stats.completedItems;
+      planned += m.stats.scheduledItems;
     }
-    return { days, strength, minutes, rate: planned ? Math.round((done / planned) * 100) : 0 };
+    return { days, strength, todos, minutes, rate: planned ? Math.round((done / planned) * 100) : 0 };
   }, [months]);
 
   if (!open) return null;
@@ -106,7 +111,7 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
               {totals.days}
               <span>일</span>
             </div>
-            <div className="ystats-total__label">운동한 날</div>
+            <div className="ystats-total__label">기록한 날</div>
           </div>
           <div className="ystats-total">
             <Percent size={17} strokeWidth={2.4} className="ystats-total__icon is-accent" />
@@ -125,17 +130,30 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
             <div className="ystats-total__label">운동 시간</div>
           </div>
           <div className="ystats-total">
-            <Dumbbell size={17} strokeWidth={2.4} className="ystats-total__icon is-iris" />
-            <div className="ystats-total__value num">
-              {totals.strength}
-              <span>일</span>
-            </div>
-            <div className="ystats-total__label">근력 운동</div>
+            {hl.on ? (
+              <>
+                <HighlightIcon icon={hl.icon} size={17} className="ystats-total__icon is-iris" />
+                <div className="ystats-total__value num">
+                  {totals.strength}
+                  <span>일</span>
+                </div>
+                <div className="ystats-total__label">{hl.name}</div>
+              </>
+            ) : (
+              <>
+                <ListChecks size={17} strokeWidth={2.4} className="ystats-total__icon" />
+                <div className="ystats-total__value num">
+                  {totals.todos}
+                  <span>개</span>
+                </div>
+                <div className="ystats-total__label">완료한 할 일</div>
+              </>
+            )}
           </div>
         </div>
 
-        <section className="chart-card card" aria-label="월별 운동한 날">
-          <h2 className="chart-card__title">월별 운동한 날</h2>
+        <section className="chart-card card" aria-label="월별 기록한 날">
+          <h2 className="chart-card__title">월별 기록한 날</h2>
           <div className="ymchart" role="list">
             {months.map((m) => (
               <button
@@ -145,7 +163,7 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
                 className={`ymchart__col${m.key === activeMonth ? ' is-active' : ''}${m.future || !m.started ? ' is-future' : ''}`}
                 disabled={m.future || !m.started}
                 onClick={() => onSelectMonth(m.key)}
-                aria-label={`${m.label}: 운동한 날 ${m.stats.workoutDays}일`}
+                aria-label={`${m.label}: 기록한 날 ${m.stats.workoutDays}일`}
               >
                 <span className="ymchart__val num">{m.stats.workoutDays || ''}</span>
                 <span className="ymchart__track">
@@ -169,13 +187,13 @@ export function YearStatsView({ open, activeMonth, onClose, onSelectMonth }: Yea
             >
               <span className="ystat__head">
                 <span className="ystat__label">{m.label}</span>
-                {!m.future && m.started && m.stats.scheduledVideos > 0 && <span className="ystat__pct num">{pct(m.stats)}%</span>}
+                {!m.future && m.started && m.stats.scheduledItems > 0 && <span className="ystat__pct num">{pct(m.stats)}%</span>}
               </span>
               {m.future || !m.started ? (
                 <span className="ystat__meta">{m.future ? '예정' : '시작 전'}</span>
               ) : (
                 <>
-                  {m.started && m.stats.scheduledVideos > 0 && (
+                  {m.started && m.stats.scheduledItems > 0 && (
                     <span className="ystat__bar" aria-hidden="true">
                       <span style={{ width: `${pct(m.stats)}%` }} />
                     </span>

@@ -58,7 +58,7 @@ export function RepeatEditor({ target, onClose }: RepeatEditorProps) {
       setSpecific(d.length > 0 && d.length < 7);
     } else if (target.kind === 'rule' && rule) {
       setVideo({ title: rule.title, youtubeUrl: rule.youtubeUrl, durationMin: rule.durationMin, category: rule.category });
-      setType(rule.type);
+      setType(rule.type === 'todo' ? 'workout' : rule.type); // to-do repeats open in their own sheet
       setDays(rule.weekdays);
       setSpecific(rule.weekdays.length < 7);
     } else {

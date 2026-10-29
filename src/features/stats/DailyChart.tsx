@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { formatParts } from '../../lib/date';
 import type { MonthStats } from '../../lib/stats';
+import { useHighlight } from '../../state/useHighlight';
 
 interface DailyChartProps {
   stats: MonthStats;
@@ -9,8 +10,9 @@ interface DailyChartProps {
 
 const H = 120;
 
-/** Daily completion (% of the day's videos) for the month — lime for workouts, iris for strength days. */
+/** Daily completion (% of the day's videos and to-dos) for the month — accent colour, secondary for strength days. */
 export function DailyChart({ stats, todayKey }: DailyChartProps) {
+  const hl = useHighlight();
   const [hover, setHover] = useState<number | null>(null);
   const n = stats.daily.length;
   const active = hover !== null ? stats.daily[hover] : null;
@@ -19,11 +21,13 @@ export function DailyChart({ stats, todayKey }: DailyChartProps) {
     <div className="dchart">
       <div className="dchart__legend" aria-hidden="true">
         <span>
-          <i className="dchart__sw dchart__sw--w" /> 운동
+          <i className="dchart__sw dchart__sw--w" /> 완료율
         </span>
-        <span>
-          <i className="dchart__sw dchart__sw--s" /> 근력 운동한 날
-        </span>
+        {hl.on && (
+          <span>
+            <i className="dchart__sw dchart__sw--s" /> {hl.dayLabel}
+          </span>
+        )}
       </div>
 
       <div className="dchart__plot" onMouseLeave={() => setHover(null)}>
@@ -70,8 +74,8 @@ export function DailyChart({ stats, todayKey }: DailyChartProps) {
                 ? '예정'
                 : active.progress.status === 'rest' && active.progress.completed === 0
                   ? '휴식일'
-                  : `영상 ${active.progress.completed}/${active.progress.total}`}
-              {active.progress.strength ? ' · 근력' : ''}
+                  : `${active.progress.completed}/${active.progress.total} 완료${active.progress.todoTotal ? ` (할 일 ${active.progress.todosDone}/${active.progress.todoTotal})` : ''}`}
+              {active.progress.strength ? ` · ${hl.name}` : ''}
             </span>
           </div>
         )}
@@ -97,7 +101,7 @@ export function DailyChart({ stats, todayKey }: DailyChartProps) {
           <tr>
             <th>날짜</th>
             <th>완료</th>
-            <th>근력 운동</th>
+            <th>{hl.name}</th>
           </tr>
         </thead>
         <tbody>

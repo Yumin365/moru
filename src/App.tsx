@@ -16,6 +16,7 @@ import { takeJinyPayloadFromHash, type JinyPayload } from './lib/jiny';
 import { needsOnboarding, restartOnboarding } from './lib/onboarding';
 import { loadYouTubeApi } from './lib/youtube';
 import { useDecor } from './state/Decor';
+import { useToast } from './state/Toast';
 import { useBackButton } from './state/useBackButton';
 import { useStore } from './state/WorkoutStore';
 import type { RoutineItem } from './types';
@@ -28,7 +29,13 @@ interface Session {
 
 /** App shell: tab navigation (no router → no GitHub Pages 404s) + full-screen overlays. */
 export function App() {
-  const { todayKey, records, imported } = useStore();
+  const { todayKey, records, imported, highlightNotice, clearHighlightNotice } = useStore();
+  const toast = useToast();
+  useEffect(() => {
+    if (!highlightNotice) return;
+    toast({ message: highlightNotice });
+    clearHighlightNotice();
+  }, [highlightNotice]); // eslint-disable-line react-hooks/exhaustive-deps
   const [tab, setTab] = useState<TabId>('today');
   const [calendarFocus, setCalendarFocus] = useState<string | null>(null);
   const [session, setSession] = useState<Session | null>(null);

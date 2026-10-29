@@ -1,11 +1,13 @@
-import { CalendarCheck, Clock3, Dumbbell } from 'lucide-react';
+import { CalendarCheck, Clock3, ListChecks } from 'lucide-react';
 import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { MonthHeader } from '../../components/MonthHeader';
 import { ProgressRing } from '../../components/ProgressRing';
 import { StreakCards } from '../../components/StreakCards';
+import { HighlightIcon } from '../../components/HighlightIcon';
 import { addMonths, formatMonthTitle, monthKey } from '../../lib/date';
 import { monthStats } from '../../lib/stats';
 import { useStore } from '../../state/WorkoutStore';
+import { useHighlight } from '../../state/useHighlight';
 import { DailyChart } from './DailyChart';
 import { YearStatsView } from './YearStatsView';
 import './stats.css';
@@ -29,6 +31,7 @@ function Tile({ icon, value, unit, label, tone }: { icon: ReactNode; value: Reac
 
 export function StatsView() {
   const { todayKey, getProgress, appStart } = useStore();
+  const hl = useHighlight();
   const [month, setMonth] = useState(monthKey(todayKey));
   const [yearOpen, setYearOpen] = useState(false);
   const closeYear = useCallback(() => setYearOpen(false), []);
@@ -74,22 +77,36 @@ export function StatsView() {
         <div className="rate__text">
           <div className="rate__label">이번 달 완료율</div>
           <div className="rate__big num">
-            {stats.completedVideos}
-            <span> / {stats.scheduledVideos}</span>
+            {stats.completedItems}
+            <span> / {stats.scheduledItems}</span>
           </div>
-          <div className="rate__sub">완료한 영상</div>
+          <div className="rate__sub">완료한 항목</div>
           <div className="rate__bar" aria-hidden="true">
             <span style={{ width: `${pct}%` }} />
           </div>
+          {stats.scheduledTodos > 0 && (
+            <div className="rate__split num">
+              <span>
+                영상 {stats.completedItems - stats.completedTodos}/{stats.scheduledItems - stats.scheduledTodos}
+              </span>
+              <span>
+                할 일 {stats.completedTodos}/{stats.scheduledTodos}
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
       <StreakCards />
 
       <div className="tiles">
-        <Tile icon={<CalendarCheck size={18} strokeWidth={2.4} />} value={stats.workoutDays} unit="일" label="운동한 날" tone="accent" />
+        <Tile icon={<CalendarCheck size={18} strokeWidth={2.4} />} value={stats.workoutDays} unit="일" label="기록한 날" tone="accent" />
         <Tile icon={<Clock3 size={18} strokeWidth={2.4} />} value={stats.minutes} unit="분" label="운동 시간" />
-        <Tile icon={<Dumbbell size={18} strokeWidth={2.4} />} value={stats.strengthDays} unit="일" label="근력 운동한 날" tone="iris" />
+        {hl.on ? (
+          <Tile icon={<HighlightIcon icon={hl.icon} size={18} />} value={stats.strengthDays} unit="일" label={hl.dayLabel} tone="iris" />
+        ) : (
+          <Tile icon={<ListChecks size={18} strokeWidth={2.4} />} value={stats.completedTodos} unit="개" label="완료한 할 일" />
+        )}
         <Tile icon={<CalendarCheck size={18} strokeWidth={2.4} />} value={stats.fullDays} unit="일" label="모두 완료한 날" />
       </div>
 
@@ -97,7 +114,7 @@ export function StatsView() {
         <div className="chart-card__head">
           <div>
             <h2 className="chart-card__title">일별 완료율</h2>
-            <p className="chart-card__sub">그날 계획된 영상 중 완료한 비율</p>
+            <p className="chart-card__sub">그날 루틴(영상·할 일) 중 완료한 비율</p>
           </div>
         </div>
         {isFutureMonth ? <p className="chart-card__empty">아직 시작되지 않은 달이에요.</p> : <DailyChart stats={stats} todayKey={todayKey} />}
@@ -107,10 +124,10 @@ export function StatsView() {
         <div className="chart-card__head">
           <div>
             <h2 className="chart-card__title">요일별 리듬</h2>
-            <p className="chart-card__sub">{best ? `${best}요일에 가장 꾸준해요` : '요일별로 운동한 날 수'}</p>
+            <p className="chart-card__sub">{best ? `${best}요일에 가장 꾸준해요` : '요일별로 기록한 날 수'}</p>
           </div>
         </div>
-        <div className="wk" role="list" aria-label="요일별 운동한 날">
+        <div className="wk" role="list" aria-label="요일별 기록한 날">
           {stats.byWeekday.map((v, i) => (
             <div key={WEEKDAYS[i]} className="wk__col" role="listitem" aria-label={`${WEEKDAYS[i]}요일: ${v}일`}>
               <span className="wk__val num">{v || ''}</span>

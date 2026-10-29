@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Flame,
   Flower2,
+  Highlighter,
   Palette,
   Plus,
   Repeat,
@@ -23,15 +24,18 @@ import { IconButton } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { addMonths, formatMonthTitle, monthKey, parseDateKey, weekdaysLabel } from '../../lib/date';
 import { canInstall, isStandalone, onInstallChange } from '../../lib/install';
+import { HIGHLIGHT_MODE_LABEL } from '../../lib/highlight';
 import { JINY_ROUTINE_URL } from '../../lib/jiny';
 import { PRESETS } from '../../lib/palette';
-import { mergeStretchDefaults, stretchDaysOn, type StretchSlot } from '../../lib/schedule';
+import { mergeStretchDefaults, recurringItemId, stretchDaysOn, TYPE_LABEL, type StretchSlot } from '../../lib/schedule';
 import { useDecor } from '../../state/Decor';
 import { useBackButton } from '../../state/useBackButton';
 import { useBackupFile } from '../../state/useBackupFile';
 import { useToast } from '../../state/Toast';
 import { useStore } from '../../state/WorkoutStore';
 import { HomeScreenGuide } from './HomeScreenGuide';
+import { TodoSheet, type TodoTarget } from '../todo/TodoSheet';
+import { HighlightSheet } from './HighlightSheet';
 import { RepeatEditor, type RepeatTarget } from './RepeatEditor';
 import './settings.css';
 
@@ -152,9 +156,12 @@ export function SettingsView({ open, onClose, onOpenJiny, onOpenDecor, onReplayG
     resetRecords,
     resetEverything,
     lastBackupAt,
+    highlight,
   } = store;
   const toast = useToast();
   const [repeatTarget, setRepeatTarget] = useState<RepeatTarget | null>(null);
+  const [todoTarget, setTodoTarget] = useState<TodoTarget>(null);
+  const [highlightOpen, setHighlightOpen] = useState(false);
   const [confirm, setConfirm] = useState<'records' | 'all' | null>(null);
   const [resetOpen, setResetOpen] = useState(false);
   const [homeGuide, setHomeGuide] = useState(false);
@@ -288,8 +295,15 @@ export function SettingsView({ open, onClose, onOpenJiny, onOpenDecor, onReplayG
                 key={rule.id}
                 icon={Repeat}
                 title={rule.title}
-                detail={`${rule.weekdays.length === 7 ? '매일' : weekdaysLabel(rule.weekdays)} · ${rule.type === 'stretch' ? '스트레칭' : '운동'}`}
-                onClick={() => setRepeatTarget({ kind: 'rule', id: rule.id })}
+                detail={`${rule.weekdays.length === 7 ? '매일' : weekdaysLabel(rule.weekdays)} · ${TYPE_LABEL[rule.type]}`}
+                onClick={() =>
+                  rule.type === 'todo'
+                    ? setTodoTarget({
+                        dateKey: todayKey,
+                        item: { id: recurringItemId(rule.id), type: 'todo', title: rule.title, youtubeUrl: '', recurringId: rule.id },
+                      })
+                    : setRepeatTarget({ kind: 'rule', id: rule.id })
+                }
               />
             ))}
             <button type="button" className="srow srow--add" onClick={() => setRepeatTarget({ kind: 'new' })}>
@@ -321,6 +335,12 @@ export function SettingsView({ open, onClose, onOpenJiny, onOpenDecor, onReplayG
                   onChange={(v) => setOption('countPartialDays', v === 'any')}
                 />
               }
+            />
+            <Row
+              icon={Highlighter}
+              title="파란색 기록"
+              detail={`${highlight.mode === 'off' ? '사용 안 함' : `${highlight.name} · ${HIGHLIGHT_MODE_LABEL[highlight.mode]}`}${highlight.mode === 'ask' && highlight.askAfterWorkout === false ? ' · 묻지 않음' : ''}`}
+              onClick={() => setHighlightOpen(true)}
             />
             <Row
               icon={CalendarDays}
@@ -428,6 +448,8 @@ export function SettingsView({ open, onClose, onOpenJiny, onOpenDecor, onReplayG
       </div>
 
       <RepeatEditor target={repeatTarget} onClose={() => setRepeatTarget(null)} />
+      <TodoSheet target={todoTarget} onClose={() => setTodoTarget(null)} />
+      <HighlightSheet open={highlightOpen} onClose={() => setHighlightOpen(false)} />
       <HomeScreenGuide open={homeGuide} onClose={() => setHomeGuide(false)} />
 
       <ConfirmDialog

@@ -11,6 +11,9 @@ export interface VideoRef {
 
 export type WorkoutType = 'workout' | 'stretch';
 
+/** Routine items are videos (workout / stretch) or plain-text to-dos. */
+export type ItemType = WorkoutType | 'todo';
+
 /** The four fixed slots of a scheduled day, in session order. */
 export type SlotId = 'stretch1' | 'workout1' | 'workout2' | 'stretch2';
 
@@ -28,10 +31,10 @@ export interface ScheduleDay {
 
 export type WorkoutSchedule = Record<string, ScheduleDay>;
 
-/** A resolved, playable item of a day. */
+/** A resolved item of a day: a playable video, or a to-do (empty youtubeUrl). */
 export interface RoutineItem {
   id: string;
-  type: WorkoutType;
+  type: ItemType;
   title: string;
   youtubeUrl: string;
   durationMin?: number;
@@ -40,12 +43,23 @@ export interface RoutineItem {
   recurringId?: string;
   /** Exact played length in seconds when it was measured (keeps totals precise) */
   durationSec?: number;
+  /** One-off to-do this item comes from */
+  todoId?: string;
 }
 
-/** "Every week on these weekdays" video, added on top of each matching day's plan. */
+/** A one-off to-do written for one date. */
+export interface TodoEntry {
+  id: string;
+  title: string;
+  createdAt: string;
+}
+/** dateKey → that day's one-off to-dos */
+export type TodoMap = Record<string, TodoEntry[]>;
+
+/** "Every week on these weekdays" video or to-do, added to each matching day's plan. */
 export interface RecurringRule {
   id: string;
-  type: WorkoutType;
+  type: ItemType;
   title: string;
   youtubeUrl: string;
   durationMin?: number;
@@ -56,6 +70,8 @@ export interface RecurringRule {
   startDate: string;
   /** last date it applies to (set when the repeat is stopped) */
   endDate?: string;
+  /** when it was made (newest to-dos go first) */
+  createdAt?: string;
 }
 
 export interface DayPlan {
@@ -74,7 +90,7 @@ export interface DayPlan {
 export interface DayRecord {
   /** itemId → ISO timestamp of completion */
   done: Record<string, string>;
-  /** Answer to "Did you do strength training today?" */
+  /** Answer to the 파란색 기록 question ("Did you do strength training today?" by default) */
   strength?: boolean;
   /** Set when every item of the day was completed */
   finishedAt?: string;
@@ -86,8 +102,13 @@ export type RecordMap = Record<string, DayRecord>;
 export type DayStatus = 'future' | 'rest' | 'none' | 'partial' | 'full';
 
 export interface DayProgress {
+  /** videos + to-dos */
   total: number;
   completed: number;
+  /** how many of `completed` are to-dos */
+  todosDone: number;
+  /** how many of `total` are to-dos */
+  todoTotal: number;
   ratio: number;
   status: DayStatus;
   strength: boolean;

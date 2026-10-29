@@ -230,3 +230,174 @@ button.srow:active {
 .settings-page .sgroup--reset {
   margin-top: 28px;
 }
+
+/* ── 파란색 기록 sheet ─────────────────────────── */
+.hl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.hl-form__lead {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.hl-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.hl-preview__cells {
+  display: flex;
+  gap: 5px;
+}
+.hl-preview__cells i {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--accent-3);
+}
+.hl-preview__cells i.is-hl {
+  background: var(--iris-3);
+}
+.hl-preview.is-off .hl-preview__cells i.is-hl {
+  background: var(--accent-3);
+}
+.hl-preview__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: var(--r-pill);
+  background: var(--iris-soft);
+  color: var(--iris-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+.hl-preview.is-off .hl-preview__chip {
+  background: var(--fill);
+  color: var(--muted);
+}
+.hl-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hl-section__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+.hl-icons {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.hl-icon {
+  aspect-ratio: 1;
+  max-height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+  color: var(--ink-2);
+  transition:
+    background-color var(--t-fast),
+    color var(--t-fast);
+}
+.hl-icon.is-on {
+  background: var(--iris);
+  box-shadow: none;
+  color: var(--iris-ink);
+}
+.hl-warn {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--accent-text);
+}
+.hl-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.hl-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+}
+.hl-mode.is-on {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.hl-mode__radio {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px var(--line-strong);
+  color: var(--surface);
+}
+.hl-mode.is-on .hl-mode__radio {
+  background: var(--ink);
+  box-shadow: none;
+}
+.hl-mode__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.hl-mode__text strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+.hl-mode__text small {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.hl-days {
+  padding-top: 2px;
+}
+.hl-ask {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+.hl-ask__text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.hl-ask__text strong {
+  font-size: 14.5px;
+  font-weight: 800;
+}
+.hl-ask__text small {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}

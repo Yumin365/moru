@@ -2,7 +2,7 @@ import { CircleCheck, ClipboardPaste, TriangleAlert } from 'lucide-react';
 import { useEffect, useId, useRef } from 'react';
 import { Thumbnail } from '../../components/Thumbnail';
 import { fetchVideoTitle, parseYouTubeId } from '../../lib/youtube';
-import type { WorkoutType } from '../../types';
+import type { ItemType } from '../../types';
 
 export interface VideoDraft {
   title: string;
@@ -13,7 +13,7 @@ export interface VideoDraft {
 
 interface VideoFieldsProps {
   value: VideoDraft;
-  type: WorkoutType;
+  type: ItemType;
   onChange: (patch: Partial<VideoDraft>) => void;
   showErrors?: boolean;
 }

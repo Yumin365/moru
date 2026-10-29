@@ -3,6 +3,7 @@ import { MonthHeader } from '../../components/MonthHeader';
 import { Tip } from '../../components/Tip';
 import { addMonths, formatMonthTitle, monthGrid, monthKey, weekdayLabels } from '../../lib/date';
 import { monthStats } from '../../lib/stats';
+import { useHighlight } from '../../state/useHighlight';
 import { useStore } from '../../state/WorkoutStore';
 import { CalendarDay } from './CalendarDay';
 import { DayDetail } from './DayDetail';
@@ -15,6 +16,7 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ focusDate, onEditRoutine }: CalendarViewProps) {
+  const hl = useHighlight();
   const { todayKey, getProgress, options, appStart, lastPlannedMonth } = useStore();
   const minMonth = monthKey(appStart);
   const maxMonth = lastPlannedMonth;
@@ -73,11 +75,13 @@ export function CalendarView({ focusDate, onEditRoutine }: CalendarViewProps) {
       <section className="cal card" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd} aria-label={`${title.year}년 ${title.month}`}>
         <div className="cal__summary">
           <span>
-            운동한 날 <strong className="num">{stats.workoutDays}</strong>일
+            기록한 날 <strong className="num">{stats.workoutDays}</strong>일
           </span>
-          <span>
-            근력 <strong className="num">{stats.strengthDays}</strong>일
-          </span>
+          {hl.on && (
+            <span>
+              {hl.name} <strong className="num">{stats.strengthDays}</strong>일
+            </span>
+          )}
           {!isCurrentMonth && (
             <button type="button" className="text-link cal__today" onClick={() => { setMonth(monthKey(todayKey)); setSelected(todayKey); }}>
               오늘로
@@ -116,11 +120,13 @@ export function CalendarView({ focusDate, onEditRoutine }: CalendarViewProps) {
             <i className="legend__sw legend__sw--l0" /> 기록 없음
           </span>
           <span className="legend__item">
-            <i className="legend__sw legend__sw--l3" /> 운동
+            <i className="legend__sw legend__sw--l3" /> 기록
           </span>
-          <span className="legend__item">
-            <i className="legend__sw legend__sw--s3" /> 근력
-          </span>
+          {hl.on && (
+            <span className="legend__item">
+              <i className="legend__sw legend__sw--s3" /> {hl.name}
+            </span>
+          )}
         </div>
       </section>
 

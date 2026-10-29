@@ -1,11 +1,11 @@
 import { Dumbbell, Flower2 } from 'lucide-react';
 import { useState } from 'react';
 import { parseYouTubeId, thumbnailUrl, type ThumbQuality } from '../lib/youtube';
-import type { WorkoutType } from '../types';
+import type { ItemType } from '../types';
 
 interface ThumbnailProps {
   url: string;
-  type: WorkoutType;
+  type: ItemType;
   quality?: ThumbQuality;
   className?: string;
 }

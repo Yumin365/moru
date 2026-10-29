@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { appConfig } from '../config/appConfig';
 import { workoutSchedule } from '../data/workoutSchedule';
 import {
+  mergeOrder,
   mergeStretchDefaults,
   resolveDay,
   type ResolveContext,
@@ -12,8 +13,10 @@ import {
 import { currentStreak, dayProgress, earliestRecordKey, longestStreak } from '../lib/stats';
 import { readJSON, removeKey, STORAGE_KEYS, writeJSON } from '../lib/storage';
 import { addDays } from '../lib/date';
-import type { DayPlan, DayProgress, DayRecord, RecordMap, RecurringRule, RoutineItem, ScheduleDay, VideoRef } from '../types';
+import type { DayPlan, DayProgress, DayRecord, RecordMap, RecurringRule, RoutineItem, ScheduleDay, TodoMap, VideoRef } from '../types';
 import { setDurationListener } from '../lib/durationProbe';
+import { DEFAULT_HIGHLIGHT, type HighlightSettings } from '../lib/highlight';
+import { recurringItemId } from '../lib/schedule';
 import { useToday } from './useToday';
 
 interface Prefs {
@@ -27,6 +30,10 @@ interface Prefs {
   lastBackupAt?: string;
   /** first day the app was used ('YYYY-MM-DD') */
   startedOn?: string;
+  /** item ids in the order the user arranged them (long-press reorder) */
+  itemOrder?: string[];
+  /** what the second (blue) calendar colour means */
+  highlight?: HighlightSettings;
 }
 
 export interface AppOptions {
@@ -54,6 +61,7 @@ export interface BackupFile {
   prefs: Prefs;
   imported?: ImportedMonths;
   recurring?: RecurringRule[];
+  todos?: TodoMap;
 }
 
 interface Store {
@@ -96,6 +104,21 @@ interface Store {
   appStart: string;
   /** last month that has a planned routine (schedule file or Jiny import), at least this month */
   lastPlannedMonth: string;
+  todos: TodoMap;
+  /** one-off to-do for a date (lands at the top); returns its id */
+  addTodo: (dateKey: string, title: string) => string;
+  renameTodo: (dateKey: string, id: string, title: string) => void;
+  removeTodo: (dateKey: string, id: string) => void;
+  /** moves one-off to-dos to another date (unfinished ones from yesterday → today) */
+  moveTodos: (fromDate: string, toDate: string, ids: string[]) => void;
+  /** saves the order of a day's items (also becomes the order for other days) */
+  setDayOrder: (ids: string[]) => void;
+  /** 파란색 기록 settings (mode is 'ask' again if the linked to-do is gone) */
+  highlight: HighlightSettings;
+  setHighlight: (next: HighlightSettings) => void;
+  /** set once when a linked to-do stopped and the mode fell back to 'ask' */
+  highlightNotice: string | null;
+  clearHighlightNotice: () => void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -124,6 +147,7 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
     const raw = readJSON<unknown>(STORAGE_KEYS.recurring, []);
     return Array.isArray(raw) ? (raw as RecurringRule[]) : [];
   });
+  const [todos, setTodos] = useState<TodoMap>(() => readJSON(STORAGE_KEYS.todos, {}));
 
   useEffect(() => void writeJSON(STORAGE_KEYS.records, records), [records]);
   useEffect(() => void writeJSON(STORAGE_KEYS.routines, routines), [routines]);
@@ -131,6 +155,7 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => void writeJSON(STORAGE_KEYS.videoMeta, videoMeta), [videoMeta]);
   useEffect(() => void writeJSON(STORAGE_KEYS.imported, imported), [imported]);
   useEffect(() => void writeJSON(STORAGE_KEYS.recurring, recurring), [recurring]);
+  useEffect(() => void writeJSON(STORAGE_KEYS.todos, todos), [todos]);
 
   // Keep several open tabs/windows in sync.
   useEffect(() => {
@@ -139,6 +164,7 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
       if (e.key === STORAGE_KEYS.routines) setRoutines(readJSON(STORAGE_KEYS.routines, {}));
       if (e.key === STORAGE_KEYS.prefs) setPrefs({ ...EMPTY_PREFS, ...readJSON(STORAGE_KEYS.prefs, EMPTY_PREFS) });
       if (e.key === STORAGE_KEYS.imported) setImported(readJSON(STORAGE_KEYS.imported, {}));
+      if (e.key === STORAGE_KEYS.todos) setTodos(readJSON(STORAGE_KEYS.todos, {}));
       if (e.key === STORAGE_KEYS.recurring) {
         const raw = readJSON<unknown>(STORAGE_KEYS.recurring, []);
         setRecurring(Array.isArray(raw) ? (raw as RecurringRule[]) : []);
@@ -183,14 +209,39 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
       learnedDurations,
       recurring,
       stretchDays: prefs.stretchDays,
+      todos,
+      order: prefs.itemOrder,
     }),
-    [schedule, routines, prefs.stretches, prefs.stretchDays, learnedDurations, recurring],
+    [schedule, routines, prefs.stretches, prefs.stretchDays, learnedDurations, recurring, todos, prefs.itemOrder],
   );
+
+  const highlight = useMemo(() => ({ ...DEFAULT_HIGHLIGHT, ...prefs.highlight }), [prefs.highlight]);
+  const highlightRule = useMemo(
+    () => ({
+      off: highlight.mode === 'off',
+      itemIds: [highlight.ruleId, ...(highlight.pastRuleIds ?? [])].filter((id): id is string => !!id).map(recurringItemId),
+    }),
+    [highlight],
+  );
+
+  // The linked to-do was deleted or stopped → keep its old checks, go back to asking.
+  const [highlightNotice, setHighlightNotice] = useState<string | null>(null);
+  useEffect(() => {
+    if (highlight.mode !== 'todo') return;
+    const rule = recurring.find((r) => r.id === highlight.ruleId);
+    if (rule && (!rule.endDate || rule.endDate >= todayKey)) return;
+    setPrefs((prev) => {
+      const h = { ...DEFAULT_HIGHLIGHT, ...prev.highlight };
+      const past = h.ruleId ? [...new Set([...(h.pastRuleIds ?? []), h.ruleId])] : h.pastRuleIds;
+      return { ...prev, highlight: { ...h, mode: 'ask', ruleId: undefined, pastRuleIds: past } };
+    });
+    setHighlightNotice(`연결한 할 일이 없어져서 '${highlight.name}' 기록을 직접 답하기로 바꿨어요`);
+  }, [highlight.mode, highlight.ruleId, highlight.name, recurring, todayKey]);
 
   const getPlan = useCallback((dateKey: string) => resolveDay(dateKey, resolveCtx), [resolveCtx]);
   const getProgress = useCallback(
-    (dateKey: string) => dayProgress(getPlan(dateKey), records[dateKey], todayKey),
-    [getPlan, records, todayKey],
+    (dateKey: string) => dayProgress(getPlan(dateKey), records[dateKey], todayKey, highlightRule),
+    [getPlan, records, todayKey, highlightRule],
   );
 
   const streak = useMemo(() => {
@@ -284,6 +335,7 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
     setVideoMeta({});
     setImported({});
     setRecurring([]);
+    setTodos({});
   }, []);
 
   const saveRecurring = useCallback((rule: RecurringRule) => {
@@ -337,6 +389,70 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
     [routines],
   );
 
+  const addTodo = useCallback((dateKey: string, title: string) => {
+    const id = `todo-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+    setTodos((prev) => ({ ...prev, [dateKey]: [...(prev[dateKey] ?? []), { id, title, createdAt: new Date().toISOString() }] }));
+    return id;
+  }, []);
+
+  const renameTodo = useCallback((dateKey: string, id: string, title: string) => {
+    setTodos((prev) => ({ ...prev, [dateKey]: (prev[dateKey] ?? []).map((t) => (t.id === id ? { ...t, title } : t)) }));
+  }, []);
+
+  /** forget a finished mark of an item that no longer exists on that day */
+  const clearDone = useCallback((dateKey: string, itemId: string) => {
+    setRecords((prev) => {
+      const rec = prev[dateKey];
+      if (!rec?.done[itemId]) return prev;
+      const done = { ...rec.done };
+      delete done[itemId];
+      const next = { ...rec, done, updatedAt: new Date().toISOString() };
+      const copy = { ...prev };
+      if (isRecordEmpty(next)) delete copy[dateKey];
+      else copy[dateKey] = next;
+      return copy;
+    });
+  }, []);
+
+  const removeTodo = useCallback(
+    (dateKey: string, id: string) => {
+      setTodos((prev) => {
+        const list = (prev[dateKey] ?? []).filter((t) => t.id !== id);
+        const copy = { ...prev };
+        if (list.length) copy[dateKey] = list;
+        else delete copy[dateKey];
+        return copy;
+      });
+      clearDone(dateKey, id);
+      setPrefs((prev) => (prev.itemOrder?.includes(id) ? { ...prev, itemOrder: prev.itemOrder.filter((x) => x !== id) } : prev));
+    },
+    [clearDone],
+  );
+
+  const moveTodos = useCallback((fromDate: string, toDate: string, ids: string[]) => {
+    const moving = new Set(ids);
+    setTodos((prev) => {
+      const from = prev[fromDate] ?? [];
+      // carried-over to-dos count as new: they land on top of the day
+      const now = new Date().toISOString();
+      const picked = from.filter((t) => moving.has(t.id)).map((t) => ({ ...t, createdAt: now }));
+      if (!picked.length) return prev;
+      const copy = { ...prev, [toDate]: [...(prev[toDate] ?? []), ...picked] };
+      const rest = from.filter((t) => !moving.has(t.id));
+      if (rest.length) copy[fromDate] = rest;
+      else delete copy[fromDate];
+      return copy;
+    });
+  }, []);
+
+  const setHighlight = useCallback((next: HighlightSettings) => {
+    setPrefs((prev) => ({ ...prev, highlight: next }));
+  }, []);
+
+  const setDayOrder = useCallback((ids: string[]) => {
+    setPrefs((prev) => ({ ...prev, itemOrder: mergeOrder(prev.itemOrder ?? [], ids) }));
+  }, []);
+
   const markBackedUp = useCallback(() => {
     setPrefs((prev) => ({ ...prev, lastBackupAt: new Date().toISOString() }));
   }, []);
@@ -355,8 +471,9 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
       prefs,
       imported,
       recurring,
+      todos,
     }),
-    [records, routines, prefs, imported, recurring],
+    [records, routines, prefs, imported, recurring, todos],
   );
 
   const importBackup = useCallback((data: unknown): boolean => {
@@ -368,6 +485,7 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
     setPrefs({ ...EMPTY_PREFS, ...(file.prefs ?? {}) });
     setImported(file.imported && typeof file.imported === 'object' ? file.imported : {});
     setRecurring(Array.isArray(file.recurring) ? file.recurring : []);
+    setTodos(file.todos && typeof file.todos === 'object' ? file.todos : {});
     return true;
   }, []);
 
@@ -406,6 +524,16 @@ export function WorkoutStoreProvider({ children }: { children: ReactNode }) {
     appStart,
     lastPlannedMonth,
     markBackedUp,
+    todos,
+    addTodo,
+    renameTodo,
+    removeTodo,
+    moveTodos,
+    setDayOrder,
+    highlight,
+    setHighlight,
+    highlightNotice,
+    clearHighlightNotice: () => setHighlightNotice(null),
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

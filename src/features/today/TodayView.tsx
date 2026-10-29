@@ -1,4 +1,4 @@
-import { CalendarPlus, Check, Pencil, Play, Settings, Undo2 } from 'lucide-react';
+import { ArrowDownToLine, CalendarPlus, Check, Pencil, Play, Plus, Settings, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Button, IconButton } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -7,14 +7,18 @@ import { Tip } from '../../components/Tip';
 import { formatParts } from '../../lib/date';
 import { addDays } from '../../lib/date';
 import { probeDurations } from '../../lib/durationProbe';
-import { durationSummary } from '../../lib/schedule';
+import { useTip } from '../../lib/onboarding';
+import { durationSummary, isTodo, isVideo } from '../../lib/schedule';
 import { parseYouTubeId } from '../../lib/youtube';
 import { useToast } from '../../state/Toast';
 import { useStore } from '../../state/WorkoutStore';
 import type { RoutineItem } from '../../types';
+import { TodoCard } from '../todo/TodoCard';
+import { TodoSheet, type TodoTarget } from '../todo/TodoSheet';
 import { StartSheet } from './StartSheet';
 import { TodayHero } from './TodayHero';
 import { WeekStrip } from './WeekStrip';
+import { useLongPressReorder } from './useLongPressReorder';
 import { WorkoutCard } from './WorkoutCard';
 import './today.css';
 
@@ -26,10 +30,12 @@ interface TodayViewProps {
 }
 
 export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRoutine }: TodayViewProps) {
-  const { todayKey, getPlan, getProgress, records, setItemDone, streak } = useStore();
+  const { todayKey, getPlan, getProgress, records, setItemDone, streak, todos, moveTodos, setDayOrder } = useStore();
   const toast = useToast();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [undoTarget, setUndoTarget] = useState<RoutineItem | null>(null);
+  const [todoTarget, setTodoTarget] = useState<TodoTarget>(null);
+  const [checkTipOpen] = useTip('today-check');
 
   const plan = getPlan(todayKey);
   const progress = getProgress(todayKey);
@@ -37,6 +43,18 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
   const doneIds = useMemo(() => new Set(Object.keys(record?.done ?? {})), [record]);
   const parts = formatParts(todayKey);
   const duration = durationSummary(plan.items);
+  const videos = plan.items.filter(isVideo);
+  const todoCount = plan.items.length - videos.length;
+  const videosLeft = videos.filter((i) => !doneIds.has(i.id)).length;
+  const videosDone = videos.length > 0 && videosLeft === 0;
+  const sort = useLongPressReorder(
+    plan.items.map((i) => i.id),
+    setDayOrder,
+  );
+
+  // yesterday's unfinished one-off to-dos can be carried over
+  const yesterday = addDays(todayKey, -1);
+  const leftover = (todos[yesterday] ?? []).filter((t) => !records[yesterday]?.done[t.id]);
 
   // Measure unknown video lengths (today first, then tomorrow) so the total is right before starting.
   const tomorrow = getPlan(addDays(todayKey, 1));
@@ -63,10 +81,12 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
     });
   };
 
+  // the start button is about the videos; to-dos are checked off in the list
   let ctaLabel = '운동 시작';
   if (plan.isRest) ctaLabel = '스트레칭 시작';
-  if (progress.completed > 0 && !allDone) ctaLabel = '이어서 운동하기';
-  if (allDone) ctaLabel = '한 번 더 하기';
+  if (videosLeft < videos.length && !videosDone) ctaLabel = '이어서 운동하기';
+  if (videosDone) ctaLabel = '한 번 더 하기';
+  const todosLeft = plan.items.filter((i) => isTodo(i) && !doneIds.has(i.id)).length;
 
   return (
     <div className="today screen">
@@ -92,22 +112,26 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
       <WeekStrip todayKey={todayKey} onSelect={onOpenDay} />
 
       <TodayHero plan={plan} progress={progress} doneIds={doneIds} />
-      {plan.items.length > 0 && (
+      {videos.length > 0 && (
         <div className="start-bar">
           <button
             type="button"
-            className={`start-btn${allDone ? ' is-done' : ''}`}
+            className={`start-btn${videosDone ? ' is-done' : ''}`}
             onClick={() => setPickerOpen(true)}
           >
             <span className="start-btn__icon" aria-hidden="true">
-              {allDone ? <Check size={22} strokeWidth={3} /> : <Play size={20} strokeWidth={0} fill="currentColor" />}
+              {videosDone ? <Check size={22} strokeWidth={3} /> : <Play size={20} strokeWidth={0} fill="currentColor" />}
             </span>
             <span className="start-btn__text">
               <span className="start-btn__label">{ctaLabel}</span>
               <span className="start-btn__sub">
-                {allDone
-                  ? '오늘 영상을 모두 완료했어요'
-                  : `남은 영상 ${progress.total - progress.completed}/${progress.total}${duration.label ? ` · 총 ${duration.label}` : ''}`}
+                {videosDone
+                  ? todosLeft
+                    ? `영상은 모두 끝! 남은 할 일 ${todosLeft}개`
+                    : allDone
+                      ? '오늘 루틴을 모두 완료했어요'
+                      : '오늘 영상을 모두 완료했어요'
+                  : `남은 영상 ${videosLeft}/${videos.length}${duration.label ? ` · 총 ${duration.label}` : ''}`}
               </span>
             </span>
           </button>
@@ -120,7 +144,7 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
         <div>
           <h2 className="section-title">오늘의 루틴</h2>
           <div className="section-sub">
-            영상 {plan.items.length}개
+            영상 {videos.length}개{todoCount ? ` · 할 일 ${todoCount}개` : ''}
             {duration.label ? ` · ${duration.label}` : ''}
             {plan.isCustom ? ' · 수정됨' : ''}
           </div>
@@ -129,6 +153,35 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
           <Pencil size={15} strokeWidth={2.4} /> 편집
         </button>
       </div>
+
+      <button type="button" className="todo-add" onClick={() => setTodoTarget({ dateKey: todayKey })}>
+        <span className="todo-add__icon" aria-hidden="true">
+          <Plus size={16} strokeWidth={2.8} />
+        </span>
+        할 일 추가
+      </button>
+
+      {leftover.length > 0 && (
+        <div className="todo-carry">
+          <span>
+            어제 못 한 할 일 <strong className="num">{leftover.length}</strong>개
+          </span>
+          <button
+            type="button"
+            className="todo-carry__btn"
+            onClick={() => {
+              moveTodos(
+                yesterday,
+                todayKey,
+                leftover.map((t) => t.id),
+              );
+              toast({ message: '어제 할 일을 오늘로 옮겼어요' });
+            }}
+          >
+            <ArrowDownToLine size={15} strokeWidth={2.4} /> 오늘로 옮기기
+          </button>
+        </div>
+      )}
 
       {plan.items.length === 0 ? (
         <div className="empty card">
@@ -142,17 +195,36 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
           </Button>
         </div>
       ) : (
-        <div className="wcard-list">
+        <div className={`wcard-list${sort.dragging ? ' is-sorting' : ''}`} ref={sort.listRef}>
           <Tip id="today-check">오른쪽 체크를 누르면 영상을 보지 않고도 완료로 표시돼요.</Tip>
+          {!checkTipOpen && plan.items.length > 1 && (
+            <Tip id="today-reorder">카드를 꾹 길게 누르면 위아래로 순서를 바꿀 수 있어요.</Tip>
+          )}
           {plan.items.map((item, index) => (
-            <WorkoutCard
+            <div
               key={item.id}
-              item={item}
-              index={index}
-              done={doneIds.has(item.id)}
-              onPlay={() => onStartSession([item])}
-              onToggleDone={() => toggle(item)}
-            />
+              className={`sort-item${sort.dragging === item.id ? ' is-lifted' : ''}`}
+              style={sort.styleFor(index)}
+              {...sort.bind(item.id, index)}
+            >
+              {isTodo(item) ? (
+                <TodoCard
+                  item={item}
+                  index={index}
+                  done={doneIds.has(item.id)}
+                  onEdit={() => setTodoTarget({ dateKey: todayKey, item })}
+                  onToggleDone={() => toggle(item)}
+                />
+              ) : (
+                <WorkoutCard
+                  item={item}
+                  index={index}
+                  done={doneIds.has(item.id)}
+                  onPlay={() => onStartSession([item])}
+                  onToggleDone={() => toggle(item)}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -161,7 +233,7 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
 
       <StartSheet
         open={pickerOpen}
-        items={plan.items}
+        items={videos}
         doneIds={doneIds}
         onClose={() => setPickerOpen(false)}
         onStart={(items) => {
@@ -169,6 +241,8 @@ export function TodayView({ onStartSession, onOpenSettings, onOpenDay, onEditRou
           onStartSession(items);
         }}
       />
+
+      <TodoSheet target={todoTarget} onClose={() => setTodoTarget(null)} />
 
       <ConfirmDialog
         open={undoTarget !== null}

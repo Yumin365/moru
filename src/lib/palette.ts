@@ -160,7 +160,7 @@ export interface ThemeWarning {
 export function themeWarnings(theme: ThemeChoice): ThemeWarning[] {
   const out: ThemeWarning[] = [];
   if (deltaE(theme.accent, theme.secondary) < 15)
-    out.push({ message: '두 색이 비슷해서 캘린더·차트에서 운동과 근력 운동을 구분하기 어려울 수 있어요.' });
+    out.push({ message: '두 색이 비슷해서 캘린더·차트에서 기록한 날과 파란색 기록을 구분하기 어려울 수 있어요.' });
   const bg = NEUTRALS[theme.neutral]['--bg'];
   if (contrast(theme.accent, bg) < 1.35) out.push({ message: '메인 색이 배경과 너무 비슷해서 진행 막대·체크가 잘 안 보일 수 있어요.' });
   return out;

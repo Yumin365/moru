@@ -1,8 +1,10 @@
-import { Check, Clock3, Dumbbell, Flame, ListChecks } from 'lucide-react';
+import { Check, Clock3, Flame, ListChecks } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Confetti } from '../../components/Confetti';
 import { Stamp } from '../../components/Stamp';
+import { HighlightIcon } from '../../components/HighlightIcon';
 import { useStore } from '../../state/WorkoutStore';
+import { useHighlight } from '../../state/useHighlight';
 import type { RoutineItem } from '../../types';
 import './completion.css';
 
@@ -13,12 +15,14 @@ interface CompletionScreenProps {
 }
 
 export function CompletionScreen({ dateKey, sessionItems, onDone }: CompletionScreenProps) {
-  const { getProgress, records, streak, setStrength } = useStore();
+  const { getPlan, getProgress, records, streak, setStrength } = useStore();
+  const hl = useHighlight();
   const progress = getProgress(dateKey);
   const record = records[dateKey];
   const strength = record?.strength;
   const allDone = progress.total > 0 && progress.completed === progress.total;
   const sessionDone = sessionItems.filter((i) => record?.done[i.id]).length;
+  const remainingTodos = getPlan(dateKey).items.filter((i) => i.type === 'todo' && !record?.done[i.id]).length;
 
   return (
     <div className="complete" role="dialog" aria-modal="true" aria-labelledby="complete-title">
@@ -43,7 +47,9 @@ export function CompletionScreen({ dateKey, sessionItems, onDone }: CompletionSc
         <p className="complete__sub">
           {allDone
             ? '오늘 계획을 모두 마쳤어요. 연속 기록이 이어지고 있어요.'
-            : `오늘 남은 영상 ${progress.total - progress.completed}개 — 언제든 이어서 할 수 있어요.`}
+            : remainingTodos === progress.total - progress.completed
+              ? `남은 할 일 ${remainingTodos}개는 오늘 화면에서 체크해요.`
+              : `오늘 남은 항목 ${progress.total - progress.completed}개 — 언제든 이어서 할 수 있어요.`}
         </p>
 
         <div className="complete__stats">
@@ -73,16 +79,17 @@ export function CompletionScreen({ dateKey, sessionItems, onDone }: CompletionSc
           </div>
         </div>
 
+        {hl.mode === 'ask' && hl.askAfterWorkout !== false && (
         <section className="strength-q" aria-labelledby="strength-q-title">
           <div className="strength-q__head">
             <span className="strength-q__icon" aria-hidden="true">
-              <Dumbbell size={18} strokeWidth={2.4} />
+              <HighlightIcon icon={hl.icon} size={18} />
             </span>
             <div>
               <h2 id="strength-q-title" className="strength-q__title">
-                오늘 근력 운동을 했나요?
+                {hl.question}
               </h2>
-              <p className="strength-q__sub">근력 운동을 한 날은 캘린더에 다른 색으로 표시돼요.</p>
+              <p className="strength-q__sub">{hl.dayLabel}은 캘린더에 다른 색으로 표시돼요.</p>
             </div>
           </div>
           <div className="strength-q__options" role="radiogroup" aria-labelledby="strength-q-title">
@@ -106,6 +113,7 @@ export function CompletionScreen({ dateKey, sessionItems, onDone }: CompletionSc
             </button>
           </div>
         </section>
+        )}
 
         <Button variant="dark" size="lg" block onClick={onDone} className="complete__done" data-autofocus>
           확인

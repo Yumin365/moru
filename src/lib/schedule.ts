@@ -1,5 +1,5 @@
 import { appConfig } from '../config/appConfig';
-import type { DayPlan, RecurringRule, RoutineItem, SlotId, VideoRef, WorkoutSchedule, WorkoutType } from '../types';
+import type { DayPlan, RecurringRule, RoutineItem, SlotId, TodoMap, VideoRef, WorkoutSchedule, WorkoutType } from '../types';
 import { parseDateKey } from './date';
 import { parseStartSeconds, parseYouTubeId } from './youtube';
 
@@ -53,7 +53,13 @@ export function toRoutineItem(id: string, type: WorkoutType, ref: VideoRef): Rou
   };
 }
 
+export const isTodo = (item: Pick<RoutineItem, 'type'>) => item.type === 'todo';
+export const isVideo = (item: Pick<RoutineItem, 'type'>) => item.type !== 'todo';
+
+export const TYPE_LABEL: Record<RoutineItem['type'], string> = { workout: '운동', stretch: '스트레칭', todo: '할 일' };
+
 export function itemCategory(item: Pick<RoutineItem, 'type' | 'category'>): string {
+  if (item.type === 'todo') return item.category ?? '';
   return item.category || (item.type === 'stretch' ? appConfig.defaultStretchCategory : appConfig.defaultWorkoutCategory);
 }
 
@@ -67,6 +73,10 @@ export interface ResolveContext {
   recurring?: RecurringRule[];
   /** which weekdays the default stretches run on (versioned by start date); default = every day */
   stretchDays?: StretchDays;
+  /** one-off to-dos per date */
+  todos?: TodoMap;
+  /** the user's preferred item order (ids), set by long-press reordering */
+  order?: string[];
 }
 
 export const EVERY_DAY = [0, 1, 2, 3, 4, 5, 6];
@@ -112,7 +122,7 @@ function ruleToItem(rule: RecurringRule): RoutineItem {
  * A repeat is skipped on days that already contain the same YouTube video.
  */
 function withRecurring(items: RoutineItem[], dateKey: string, rules: RecurringRule[] | undefined): RoutineItem[] {
-  const extra = (rules ?? []).filter((r) => ruleApplies(r, dateKey)).map(ruleToItem);
+  const extra = (rules ?? []).filter((r) => r.type !== 'todo' && ruleApplies(r, dateKey)).map(ruleToItem);
   if (!extra.length) return items;
   const presentIds = new Set(items.map((i) => i.id));
   const presentVideos = new Set(items.map((i) => parseYouTubeId(i.youtubeUrl)).filter(Boolean));
@@ -128,9 +138,46 @@ function withRecurring(items: RoutineItem[], dateKey: string, rules: RecurringRu
   return at >= 0 ? [...items.slice(0, at), ...add, ...items.slice(at)] : [...items, ...add];
 }
 
+/** To-dos of a day (repeating + one-off), newest first — new ones land at the top. */
+function todosFor(dateKey: string, ctx: ResolveContext): RoutineItem[] {
+  const repeating = (ctx.recurring ?? [])
+    .filter((r) => r.type === 'todo' && ruleApplies(r, dateKey))
+    .map((r) => ({ item: ruleToItem(r), at: r.createdAt ?? r.startDate }));
+  const oneOff = (ctx.todos?.[dateKey] ?? []).map((t) => ({
+    item: { id: t.id, type: 'todo' as const, title: t.title, youtubeUrl: '', todoId: t.id },
+    at: t.createdAt,
+  }));
+  return [...repeating, ...oneOff].sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0)).map((x) => x.item);
+}
+
+/**
+ * Applies the user's order without moving items it doesn't know yet: known items
+ * are re-sorted among the places they already occupy, so a brand-new to-do stays
+ * on top and a new video keeps its natural spot.
+ */
+export function applyOrder(items: RoutineItem[], order: string[] | undefined): RoutineItem[] {
+  if (!order?.length) return items;
+  const rank = new Map(order.map((id, i) => [id, i]));
+  const places = items.flatMap((item, i) => (rank.has(item.id) ? [i] : []));
+  if (places.length < 2) return items;
+  const sorted = places.map((i) => items[i]).sort((a, b) => rank.get(a.id)! - rank.get(b.id)!);
+  const out = [...items];
+  places.forEach((place, k) => (out[place] = sorted[k]));
+  return out;
+}
+
+/** Puts a day's new sequence into the global order, where that day's first item used to be. */
+export function mergeOrder(order: string[], sequence: string[]): string[] {
+  const moved = new Set(sequence);
+  const first = order.findIndex((id) => moved.has(id));
+  const rest = order.filter((id) => !moved.has(id));
+  const at = first < 0 ? 0 : first;
+  return [...rest.slice(0, at), ...sequence, ...rest.slice(at)];
+}
+
 /** Fills in the length from the measured video duration, minus the part skipped by a `t=` start time. */
 function withLearnedDuration(item: RoutineItem, learned?: Record<string, number>): RoutineItem {
-  if (item.durationMin || !learned) return item;
+  if (item.type === 'todo' || item.durationMin || !learned) return item;
   const id = parseYouTubeId(item.youtubeUrl);
   const seconds = id ? learned[id] : undefined;
   if (!seconds) return item;
@@ -173,6 +220,7 @@ export function resolveDay(dateKey: string, ctx: ResolveContext): DayPlan {
   }
 
   items = withRecurring(items, dateKey, ctx.recurring);
+  items = applyOrder([...todosFor(dateKey, ctx), ...items], ctx.order);
 
   return {
     dateKey,
@@ -184,16 +232,16 @@ export function resolveDay(dateKey: string, ctx: ResolveContext): DayPlan {
   };
 }
 
-/** Sum of lengths, rounded once at the end (seconds when measured, else the given minutes). */
+/** Sum of video lengths, rounded once at the end (seconds when measured, else the given minutes). */
 export function totalMinutes(items: RoutineItem[]): number {
-  const seconds = items.reduce((sum, item) => sum + (item.durationSec ?? (item.durationMin ?? 0) * 60), 0);
+  const seconds = items.filter(isVideo).reduce((sum, item) => sum + (item.durationSec ?? (item.durationMin ?? 0) * 60), 0);
   return Math.round(seconds / 60);
 }
 
 /** Total length + whether every video's length is known yet. */
 export function durationSummary(items: RoutineItem[]): { minutes: number; complete: boolean; label: string } {
   const minutes = totalMinutes(items);
-  const complete = items.every((i) => i.durationMin);
+  const complete = items.filter(isVideo).every((i) => i.durationMin);
   return { minutes, complete, label: minutes ? `${minutes}분${complete ? '' : '+'}` : '' };
 }
 

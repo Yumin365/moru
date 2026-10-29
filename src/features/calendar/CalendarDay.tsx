@@ -1,6 +1,7 @@
 import { Check } from 'lucide-react';
 import { Stamp } from '../../components/Stamp';
 import { useDecor } from '../../state/Decor';
+import { useHighlight } from '../../state/useHighlight';
 import { formatParts } from '../../lib/date';
 import type { DayProgress } from '../../types';
 
@@ -24,6 +25,7 @@ export function intensity(p: DayProgress): 0 | 1 | 2 | 3 {
 export function CalendarDay({ dateKey, progress, isToday, isSelected, beforeStart, onSelect }: CalendarDayProps) {
   const parts = formatParts(dateKey);
   const { decor } = useDecor();
+  const hl = useHighlight();
   if (beforeStart) {
     return (
       <span className="cday is-prestart" aria-label={`${parts.label}: 앱 시작 전`}>
@@ -50,7 +52,7 @@ export function CalendarDay({ dateKey, progress, isToday, isSelected, beforeStar
         ? '휴식일'
         : progress.completed === 0
           ? '미완료'
-          : `${progress.total}개 중 ${progress.completed}개 완료${progress.strength ? ', 근력 운동' : ''}`;
+          : `${progress.total}개 중 ${progress.completed}개 완료${progress.strength ? `, ${hl.name}` : ''}`;
 
   return (
     <button

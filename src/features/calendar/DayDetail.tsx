@@ -1,9 +1,11 @@
-import { Check, Dumbbell, ListVideo, Moon, Pencil } from 'lucide-react';
+import { Check, ListVideo, Moon, Pencil } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { CheckMark, Toggle } from '../../components/Checkbox';
+import { HighlightIcon } from '../../components/HighlightIcon';
 import { formatParts } from '../../lib/date';
-import { itemCategory } from '../../lib/schedule';
+import { itemCategory, TYPE_LABEL } from '../../lib/schedule';
 import { useStore } from '../../state/WorkoutStore';
+import { useHighlight } from '../../state/useHighlight';
 
 interface DayDetailProps {
   dateKey: string;
@@ -27,6 +29,7 @@ function statusChip(status: string, completed: number, total: number) {
 
 /** Selected day's videos and record; "Edit" unlocks the toggles (prevents accidental taps). */
 export function DayDetail({ dateKey, onEditRoutine }: DayDetailProps) {
+  const hl = useHighlight();
   const { getPlan, getProgress, records, setItemDone, setStrength, todayKey } = useStore();
   const [editing, setEditing] = useState(false);
   const plan = getPlan(dateKey);
@@ -56,7 +59,7 @@ export function DayDetail({ dateKey, onEditRoutine }: DayDetailProps) {
           {statusChip(progress.status, progress.completed, progress.total)}
           {progress.strength && (
             <span className="chip chip--iris">
-              <Dumbbell size={12} strokeWidth={2.6} /> 근력
+              <HighlightIcon icon={hl.icon} size={12} strokeWidth={2.6} /> {hl.name}
             </span>
           )}
         </div>
@@ -74,7 +77,8 @@ export function DayDetail({ dateKey, onEditRoutine }: DayDetailProps) {
                 <span className="dlist__text">
                   <span className="dlist__title">{item.title}</span>
                   <span className="dlist__meta">
-                    {item.type === 'stretch' ? '스트레칭' : '운동'} · {itemCategory(item)}
+                    {TYPE_LABEL[item.type]}
+                    {itemCategory(item) ? ` · ${itemCategory(item)}` : ''}
                     {item.durationMin ? ` · ${item.durationMin}분` : ''}
                   </span>
                 </span>
@@ -101,15 +105,15 @@ export function DayDetail({ dateKey, onEditRoutine }: DayDetailProps) {
         </ul>
       )}
 
-      {editing && (
+      {editing && hl.mode === 'ask' && (
         <div className="daydetail__strength">
           <span className="daydetail__strength-label">
-            <Dumbbell size={16} strokeWidth={2.4} /> 근력 운동
+            <HighlightIcon icon={hl.icon} size={16} /> {hl.name}
           </span>
           <Toggle
             checked={record?.strength === true}
             onChange={(v) => setStrength(dateKey, v ? true : false)}
-            label="이 날 근력 운동 여부"
+            label={`이 날 ${hl.name} 여부`}
           />
         </div>
       )}
